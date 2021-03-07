@@ -1,5 +1,8 @@
 # 涂鸦mesh BLE
 
+This project is developed using Tuya SDK, which enables you to quickly develop branded apps connecting and controlling smart scenarios of many devices.
+For more information, please check Tuya Developer Website.	
+
 主要硬件:mesh BLE 模块, sht30, 主控HC32L110,lcd12864屏幕
 
 1. 干簧管,霍尔开关,振动开关检测门窗,
@@ -15,6 +18,14 @@
 涂鸦模块:https://developer.tuya.com/cn/docs/iot/device-development/module/ble-module/tybt-series-module/bletybt5module?id=K989rhpdqls8g
 
 软件程序:https://gitee.com/miwang186/tuya_mesh_ble
+
+![111](./image/111.JPG)
+	   
+![222](./image/222.JPG)
+	   
+![333](./image/333.png)
+	   
+![444](./image/444.jpg)
 
 更新日志:
 时间:20210307
