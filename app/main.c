@@ -1,22 +1,13 @@
 /******************************************************************************
  * Include files
  ******************************************************************************/
-#include "gpio.h"
 #include "lcd12864.h"
 #include "sht30.h"
 #include "mesh_ble.h"
+#include "switch_adc.h"
 #include "common.h"
 #include "bsp.h"
 
-///*0x78 0x7a 0x7c 0x7e*/
-//void lcd9616_init()
-//{
-//	uint8_t write_buff[2] = {0x21, 0x16};
-//	if(!I2C0_WriteNumByte(0x7e,write_buff,0,2))
-//	{
-//		printf_log(0, "iic time out \n");
-//	}
-//}
 uint32_t tick_time_100ms = 0;
 bool timer_collection_data_flag = false;
 bool timer_upload_data_flag = false;
@@ -64,7 +55,8 @@ static void Timer0_Config(uint16_t time_arr)
     Bt_Run(TIM0);
 }
 
-int current_temperature = 0, current_humidity = 0;
+static int current_temperature = 0, current_humidity = 0, battery_percentage = 0;
+bool current_switch_status = false;
 
 void printf_sht30_data()
 {
@@ -78,6 +70,31 @@ void printf_sht30_data()
 		current_temperature = temperature * 10;
 		current_humidity = humidity;
 	}
+}
+//const uint16_t voltage_quantity_max_tab[] = {420,406,398,392,387,382,379,377,374,368,345,300};
+//const uint16_t voltage_quantity_min_tab[] = {420,397,387,379,373,368,365,362,358,351,342,300};
+
+void printf_bat_voltage()
+{
+	uint16_t bat_voltage = (((get_bat_adc_value() / 4096.0) * 3.3 ) / 0.769) * 100 + 5;
+	/*0.796 bat/adc_voltage  5 误差补偿*/
+	
+	printf_log(0,"bat_voltage %d.%dV\n", bat_voltage/100,bat_voltage%100);
+	battery_percentage = bat_voltage - 320; 
+}
+
+bool printf_switch_status()
+{
+	static bool last_status = false;
+	current_switch_status = !get_switch_status();
+	
+	if(last_status != current_switch_status)
+	{
+		printf_log(0, "switch status %d \n",current_switch_status);
+		last_status = current_switch_status;
+		return true;
+	}
+	return false;
 }
 
 void hex_to_string(char *string, const uint8_t *hex, uint8_t len)
@@ -110,7 +127,6 @@ void printf_hex_buff(uint8_t *buff,uint8_t len)
 	print_buff[len * 2] = '\0';
 	printf_log(0,"%s\n",print_buff);
 }
-
 
 #define FRAME_HEADR 	0x55aa
 #define FRAME_HEAD_LEN	6
@@ -234,7 +250,7 @@ void device_info_response(Ble_Frame *frame)
 
 void upload_status_data()
 {
-	Dp_Data dp_data[2];
+	Dp_Data dp_data[3];
 	
 	dp_data[0].dpid = 1;	/*温度*/
 	dp_data[0].type = 0x02;/*int*/
@@ -247,9 +263,27 @@ void upload_status_data()
 	dp_data[1].len = BigLittleSwap16(0x0004); /*4byte 大端*/
 	current_humidity = BigLittleSwap32(current_humidity);
 	memcpy(dp_data[1].value, &current_humidity, sizeof(current_humidity));
+
+	dp_data[2].dpid = 4;	/*电量*/
+	dp_data[2].type = 0x02; /*int*/
+	dp_data[2].len = BigLittleSwap16(0x0004); /*4byte 大端*/
+	battery_percentage = BigLittleSwap32(battery_percentage);
+	memcpy(dp_data[2].value, &battery_percentage, sizeof(battery_percentage));
 	
 	send_splicing_data(7, &dp_data, sizeof(dp_data));
 }
+
+void upload_switch_status_data()
+{
+	Dp_Data dp_data;
+	dp_data.dpid = 101;	/*门状态*/
+	dp_data.type = 0x01; /*bool*/
+	dp_data.len = BigLittleSwap16(0x0001); /*1byte*/
+	dp_data.value[0] = current_switch_status; 
+	
+	send_splicing_data(7, &dp_data, sizeof(dp_data) - 3);	
+}
+
 void handle_ble_data()
 {
 	Ble_Frame frame;
@@ -303,6 +337,7 @@ int32_t main(void)
 	printf_log(0, "Clk_GetPClkFreq:%llu\n",Clk_GetPClkFreq());
 	
 	Mesh_BLE_Init();
+	ADC_Gpio_Init();
 	sht30_init();
 	delay1ms(5);
 	sht30_init();
@@ -315,12 +350,18 @@ int32_t main(void)
 		{
 			timer_collection_data_flag = false;
 			printf_sht30_data();
+			printf_bat_voltage();
 		}
 		
 		if(timer_upload_data_flag)
 		{
 			upload_status_data();
 			timer_upload_data_flag = false;
+		}
+		
+		if(printf_switch_status())
+		{
+			upload_switch_status_data();
 		}
 		
 		if(get_recv_ble_data_finish())

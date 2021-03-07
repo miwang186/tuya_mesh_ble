@@ -532,3 +532,13 @@ void MLCD_Init()
     MLCD_Stop();
 }
 
+///*0x78 0x7a 0x7c 0x7e*/
+//void lcd9616_init()
+//{
+//	uint8_t write_buff[2] = {0x21, 0x16};
+//	if(!I2C0_WriteNumByte(0x7e,write_buff,0,2))
+//	{
+//		printf_log(0, "iic time out \n");
+//	}
+//}
+

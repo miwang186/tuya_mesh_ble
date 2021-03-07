@@ -438,6 +438,11 @@
               <FileType>1</FileType>
               <FilePath>..\bsp\sht30.c</FilePath>
             </File>
+            <File>
+              <FileName>switch_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\switch_adc.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -552,6 +557,16 @@
               <FileName>SEGGER_RTT_printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\RTT\SEGGER_RTT_printf.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>readme</GroupName>
+          <Files>
+            <File>
+              <FileName>readme.md</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\readme.md</FilePath>
             </File>
           </Files>
         </Group>
